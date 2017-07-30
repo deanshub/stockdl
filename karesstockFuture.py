@@ -19,9 +19,9 @@ def get_stock_data(stock_name, normalized=0):
 	filename = stock_name+'_stock_%s.csv' % today
 
 	if not os.path.isfile(filename):
-		month = calendar.month_abbr[5]
-		day = '10'
-		year='2015'
+		month = calendar.month_abbr[7]
+		day = '17'
+		year='2012'
 		url = 'http://www.google.com/finance/historical?q={0}&startdate={1}+{2}%2C+{3}&output=csv'.format(stock_name, month, day,year)
 
 		col_names = ['Date','Open','High','Low','Close','Volume']
@@ -111,20 +111,22 @@ def getPrediciton(dataset, look_back):
 	trainY = scaler.inverse_transform([trainY])
 	return trainPredict
 
-
-filename = get_stock_data('SNAP')
+stockSymbol = 'FATE'
+daysToAdd = 50
+filename = get_stock_data(stockSymbol)
 # load the dataset
 # dataframe = read_csv('international-airline-passengers.csv', usecols=[1], engine='python', skipfooter=3)
 dataframe = read_csv(filename, usecols=[3], engine='python', skipfooter=3)
 dataset = dataframe.values[::-1]
 dataset = dataset.astype('float32')
+lastActualValue = dataset[len(dataset) - 1]
 
 # normalize the dataset
 scaler = MinMaxScaler(feature_range=(0, 1))
 look_back = 1
 
 trainPredict = getPrediciton(dataset, look_back)
-for x in range(0,50):
+for x in range(0,daysToAdd):
 	print(trainPredict[len(trainPredict)-1])
 	dataset = numpy.vstack([dataset, [trainPredict[len(trainPredict)-1]]])
 	trainPredict = getPrediciton(dataset, look_back)
@@ -146,8 +148,15 @@ trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
 # testPredictPlot[:, :] = numpy.nan
 # testPredictPlot[len(trainPredict)+(look_back*2)+1:len(dataset)-1, :] = testPredict
 
+lastPredictionValue = trainPredict[len(trainPredict)-1]
+precentageDiff = numpy.absolute(lastActualValue - lastPredictionValue) / ((lastActualValue + lastPredictionValue)/2)
+precentageDiff=precentageDiff*100
+sign = '+' if (lastPredictionValue>lastActualValue) else '-'
 
+predictionDate = datetime.datetime.now() + timedelta(days=daysToAdd)
+predictionDate = predictionDate.strftime('%d - %m - %Y')
 # plot baseline and predictions
+plt.title(predictionDate + '  ' + stockSymbol+' - ' + lastPredictionValue + '('+ sign + precentageDiff+'%)')
 # plt.plot(scaler.inverse_transform(dataset))
 plt.plot(trainPredictPlot)
 # plt.plot(testPredictPlot)
